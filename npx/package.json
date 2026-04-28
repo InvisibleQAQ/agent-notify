@@ -1,0 +1,23 @@
+{
+  "name": "agent-notify",
+  "version": "0.3.6",
+  "description": "NPX launcher for the agent-notify binary",
+  "bin": {
+    "agent-notify": "./bin/agent-notify.js"
+  },
+  "type": "commonjs",
+  "files": [
+    "bin",
+    "lib",
+    "test"
+  ],
+  "scripts": {
+    "test": "node --test ./test/*.test.js"
+  },
+  "dependencies": {
+    "tar": "^7.4.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

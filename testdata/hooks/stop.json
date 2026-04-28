@@ -1,0 +1,6 @@
+{
+  "hook_event_name": "Stop",
+  "session_id": "sess-1",
+  "cwd": "/tmp/demo",
+  "stop_reason": "end_turn"
+}

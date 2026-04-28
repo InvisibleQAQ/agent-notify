@@ -1,0 +1,134 @@
+// Package tester provides the test notification service for agent-notify.
+// It handles sending test notifications through various channels.
+package tester
+
+import (
+	"context"
+	"errors"
+
+	"github.com/hellolib/agent-notify/internal/config"
+	"github.com/hellolib/agent-notify/internal/notify"
+)
+
+// FeishuPreparer prepares the Feishu CLI for use.
+type FeishuPreparer interface {
+	EnsureReady(ctx context.Context) error
+}
+
+// ConfigLoader loads configuration.
+type ConfigLoader interface {
+	Load(path string) (config.Config, error)
+	DefaultPath() (string, error)
+}
+
+// Service handles test notifications.
+type Service struct {
+	feishuPreparer FeishuPreparer
+	configLoader   ConfigLoader
+	feishuSender   notify.Sender
+	systemSender   notify.Sender
+}
+
+// NewService creates a new tester service.
+func NewService(opts ...Option) *Service {
+	s := &Service{}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
+}
+
+// Option configures the service.
+type Option func(*Service)
+
+// WithFeishuPreparer sets the Feishu preparer.
+func WithFeishuPreparer(p FeishuPreparer) Option {
+	return func(s *Service) { s.feishuPreparer = p }
+}
+
+// WithConfigLoader sets the config loader.
+func WithConfigLoader(l ConfigLoader) Option {
+	return func(s *Service) { s.configLoader = l }
+}
+
+// WithFeishuSender sets the Feishu sender.
+func WithFeishuSender(sender notify.Sender) Option {
+	return func(s *Service) { s.feishuSender = sender }
+}
+
+// WithSystemSender sets the system sender.
+func WithSystemSender(sender notify.Sender) Option {
+	return func(s *Service) { s.systemSender = sender }
+}
+
+// TestFeishuResult contains the result of a Feishu test.
+type TestFeishuResult struct {
+	Message string
+}
+
+// TestFeishu sends a test Feishu notification.
+func (s *Service) TestFeishu(ctx context.Context) (*TestFeishuResult, error) {
+	cfgPath, err := s.defaultConfigPath()
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := s.loadConfig(cfgPath)
+	if err != nil {
+		return nil, err
+	}
+	if !cfg.Notify.ClaudeCode.Channels.Feishu.Enabled {
+		return nil, errors.New("feishu is disabled, run `agent-notify init` first")
+	}
+	if s.feishuPreparer != nil {
+		if err := s.feishuPreparer.EnsureReady(ctx); err != nil {
+			return nil, err
+		}
+	}
+	msg := notify.Message{Event: "permission_required", Title: "Agent Notify 测试", Body: "这是一条测试消息"}
+	if err := s.feishuNotificationSender().Send(ctx, msg); err != nil {
+		return nil, err
+	}
+	return &TestFeishuResult{Message: "飞书测试通知已发送"}, nil
+}
+
+// TestSystemResult contains the result of a system test.
+type TestSystemResult struct {
+	Message string
+}
+
+// TestSystem sends a test system notification.
+func (s *Service) TestSystem(ctx context.Context) (*TestSystemResult, error) {
+	msg := notify.Message{Event: "permission_required", Title: "Agent Notify 测试", Body: "这是一条测试消息"}
+	if err := s.systemNotificationSender().Send(ctx, msg); err != nil {
+		return nil, err
+	}
+	return &TestSystemResult{Message: "系统测试通知已发送"}, nil
+}
+
+func (s *Service) defaultConfigPath() (string, error) {
+	if s.configLoader != nil {
+		return s.configLoader.DefaultPath()
+	}
+	return config.DefaultPath()
+}
+
+func (s *Service) loadConfig(path string) (config.Config, error) {
+	if s.configLoader != nil {
+		return s.configLoader.Load(path)
+	}
+	return config.Load(path)
+}
+
+func (s *Service) feishuNotificationSender() notify.Sender {
+	if s.feishuSender != nil {
+		return s.feishuSender
+	}
+	return notify.NewDefaultFeishuSender()
+}
+
+func (s *Service) systemNotificationSender() notify.Sender {
+	if s.systemSender != nil {
+		return s.systemSender
+	}
+	return notify.NewSystemSender(notify.DefaultRunner)
+}

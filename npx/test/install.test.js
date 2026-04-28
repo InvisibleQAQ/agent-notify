@@ -1,0 +1,152 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { PassThrough } = require('node:stream');
+const tar = require('tar');
+const { installFromArchive } = require('../lib/install');
+const { downloadToFile } = require('../lib/download');
+
+test('replaces installed binary with extracted binary', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-notify-install-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const installDir = path.join(root, '.agent-notify');
+  const archivePath = path.join(root, 'agent-notify-v0.2.3-linux-amd64.tar.gz');
+  const extractedBinaryName = 'agent-notify-v0.2.3-linux-amd64';
+
+  fs.mkdirSync(path.join(root, 'src'));
+  fs.writeFileSync(path.join(root, 'src', extractedBinaryName), 'new-binary');
+
+  await tar.c(
+    {
+      gzip: true,
+      file: archivePath,
+      cwd: path.join(root, 'src'),
+    },
+    [extractedBinaryName],
+  );
+
+  fs.mkdirSync(installDir, { recursive: true });
+  fs.writeFileSync(path.join(installDir, 'agent-notify'), 'old-binary');
+
+  const installedPath = await installFromArchive({
+    archivePath,
+    installDir,
+    binaryNameInArchive: extractedBinaryName,
+    finalBinaryName: 'agent-notify',
+  });
+
+  assert.equal(installedPath, path.join(installDir, 'agent-notify'));
+  assert.equal(fs.readFileSync(installedPath, 'utf8'), 'new-binary');
+});
+
+test('throws when archive does not contain expected binary', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-notify-install-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const installDir = path.join(root, '.agent-notify');
+  const archivePath = path.join(root, 'empty.tar.gz');
+
+  fs.mkdirSync(path.join(root, 'src'));
+  fs.writeFileSync(path.join(root, 'src', 'other-file'), 'nope');
+
+  await tar.c(
+    {
+      gzip: true,
+      file: archivePath,
+      cwd: path.join(root, 'src'),
+    },
+    ['other-file'],
+  );
+
+  await assert.rejects(
+    installFromArchive({
+      archivePath,
+      installDir,
+      binaryNameInArchive: 'agent-notify-v0.2.3-linux-amd64',
+      finalBinaryName: 'agent-notify',
+    }),
+    /binary not found in archive/,
+  );
+});
+
+test('follows relative redirects when downloading', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-notify-download-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const destinationPath = path.join(root, 'archive.tar.gz');
+
+  const client = {
+    get(url, options, handler) {
+      const request = new PassThrough();
+      process.nextTick(() => {
+        if (url === 'https://example.com/releases/archive.tar.gz') {
+          const response = new PassThrough();
+          response.statusCode = 302;
+          response.headers = { location: '/download/archive.tar.gz' };
+          handler(response);
+          response.end();
+          return;
+        }
+
+        const response = new PassThrough();
+        response.statusCode = 200;
+        response.headers = {};
+        handler(response);
+        response.end('payload');
+      });
+      return request;
+    },
+  };
+
+  const filePath = await downloadToFile('https://example.com/releases/archive.tar.gz', destinationPath, client);
+  assert.equal(filePath, destinationPath);
+  assert.equal(fs.readFileSync(destinationPath, 'utf8'), 'payload');
+});
+
+test('removes destination file when download fails with non-200 response', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-notify-download-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const destinationPath = path.join(root, 'archive.tar.gz');
+
+  const client = {
+    get(_url, _options, handler) {
+      const request = new PassThrough();
+      process.nextTick(() => {
+        const response = new PassThrough();
+        response.statusCode = 404;
+        response.headers = {};
+        handler(response);
+        response.end();
+      });
+      return request;
+    },
+  };
+
+  await assert.rejects(
+    downloadToFile('https://example.com/releases/archive.tar.gz', destinationPath, client),
+    /download failed: 404/,
+  );
+  assert.equal(fs.existsSync(destinationPath), false);
+});
+
+test('rejects with timeout error when download takes too long', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-notify-download-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const destinationPath = path.join(root, 'archive.tar.gz');
+
+  const client = {
+    get(_url, _options, handler) {
+      const request = new PassThrough();
+      process.nextTick(() => {
+        request.emit('timeout');
+      });
+      return request;
+    },
+  };
+
+  await assert.rejects(
+    downloadToFile('https://example.com/releases/archive.tar.gz', destinationPath, client),
+    /download timeout after 300s/,
+  );
+  assert.equal(fs.existsSync(destinationPath), false);
+});
