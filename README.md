@@ -14,6 +14,16 @@
 
 一个面向 AI Agent 的通知配置工具。支持将 Claude Code、Codex 等 Agent 的事件通知推送到飞书、企业微信、Bark 和系统通知。
 
+## 功能特性
+
+|   通知渠道   | 说明 | 绑定方式    |
+|:--------|------|---------|
+| 🖥️ 系统通知 | 支持 macOS、Linux、Windows 系统通知 |         |
+| <img src="assist/logo/feishu.png" width="24" align="absmiddle"> 飞书   | 支持一键扫码绑定、支持飞书机器人消息推送 | 二维码扫描   |
+| <img src="assist/logo/qiyeweixin.png" width="24" align="absmiddle"> 企业微信  | 支持通过企业微信群机器人 Webhook 推送通知消息 | Webhook |
+| <img src="assist/logo/dingding.png" width="24" align="absmiddle"> 钉钉  | 支持通过钉钉群机器人 Webhook 推送通知消息 | Webhook |
+| <img src="assist/logo/bark.png" width="24" align="absmiddle"> Bark  | 支持通过 Bark Webhook URL 推送到 iOS 设备 | Webhook |
+
 ## ❤️ 赞助
 
 <a href="https://www.ddshub.cc/register?aff=E7N6PDYWW4N5">
@@ -23,16 +33,6 @@
 感谢 **[DDS（呆呆兽）](https://www.ddshub.cc/register?aff=E7N6PDYWW4N5)** 赞助本项目！呆呆兽是一家专注 Claude 和 CodeX 的可靠高效 API 中转站，为个人和企业用户提供极具性价比的国内 Claude / CodeX API 直连加速服务。支持 Claude Haiku / Opus / Sonnet 等满血模型。企业客户更可享受定制化分组和技术支持服务。
 
 访问 [DDS（呆呆兽）](https://www.ddshub.cc/register?aff=E7N6PDYWW4N5) 获取更多详情。
-
-## 功能特性
-
-|   通知渠道   | 说明 | 绑定方式    |
-|:--------:|------|---------|
-| 🖥️ 系统通知 | 支持 macOS、Linux、Windows 系统通知 |         |
-| <img src="assist/logo/feishu.png" width="24" align="absmiddle"> 飞书   | 支持一键扫码绑定、支持飞书机器人消息推送 | 二维码扫描   |
-| <img src="assist/logo/qiyeweixin.png" width="24" align="absmiddle"> 企业微信  | 支持通过企业微信群机器人 Webhook 推送通知消息 | Webhook |
-| <img src="assist/logo/dingding.png" width="24" align="absmiddle"> 钉钉  | 支持通过钉钉群机器人 Webhook 推送通知消息 | Webhook |
-| <img src="assist/logo/bark.png" width="24" align="absmiddle"> Bark  | 支持通过 Bark Webhook URL 推送到 iOS 设备 | Webhook |
 
 ### 支持的事件
 
