@@ -96,14 +96,6 @@ func runInstallClaudeHooks(scope, binaryPath string) error {
 }
 
 func runTestFeishu(ctx context.Context, streams Streams) error {
-	cfg, _, err := loadDefaultConfig()
-	if err != nil {
-		return err
-	}
-	if !feishuEnabled(cfg) {
-		return fmt.Errorf("feishu is disabled")
-	}
-
 	svc := tester.NewService(
 		tester.WithFeishuPreparer(&feishuPreparerAdapter{}),
 	)
@@ -113,10 +105,6 @@ func runTestFeishu(ctx context.Context, streams Streams) error {
 	}
 	fmt.Fprintln(streams.Stdout, "✅ "+result.Message)
 	return nil
-}
-
-func feishuEnabled(cfg config.Config) bool {
-	return cfg.Notify.ClaudeCode.Channels.Feishu.Enabled || cfg.Notify.Codex.Channels.Feishu.Enabled
 }
 
 func runTestSystem(ctx context.Context, streams Streams) error {

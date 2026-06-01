@@ -96,13 +96,13 @@ func runMenu(ctx context.Context, streams Streams) error {
 
 func runTestMenu(ctx context.Context, streams Streams, prompter Prompter) error {
 	choice, err := prompter.Select("测试通知", []PromptOption{
-		{Label: "飞书", Value: "feishu"},
 		{Label: "系统通知", Value: "system"},
+		{Label: "飞书", Value: "feishu"},
 		{Label: "企业微信", Value: "wechat-work"},
 		{Label: "钉钉", Value: "dingtalk"},
 		{Label: "Bark", Value: "bark"},
 		{Label: "返回", Value: "back"},
-	}, "feishu")
+	}, "system")
 	if err != nil {
 		return err
 	}
