@@ -23,9 +23,12 @@ func (c *ClaudeIntegration) Name() string {
 	return "Claude Code"
 }
 
-// DetectInstalled checks if the claude CLI is installed.
+// DetectInstalled checks if the claude CLI (or CCB) is installed.
 func (c *ClaudeIntegration) DetectInstalled() bool {
-	_, err := exec.LookPath("claude")
+	if _, err := exec.LookPath("claude"); err == nil {
+		return true
+	}
+	_, err := exec.LookPath("ccb")
 	return err == nil
 }
 
